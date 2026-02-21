@@ -3,10 +3,6 @@
 Unified email subscription manager for **Gmail** and **Outlook**.
 Scan your inbox, see all subscriptions organized by category, and unsubscribe with one click.
 
-> **New here?** Read `SETUP.txt` for the complete step-by-step guide to get the app running.
-
----
-
 ## How It Works
 
 1. Connect your Gmail and/or Outlook account via OAuth
