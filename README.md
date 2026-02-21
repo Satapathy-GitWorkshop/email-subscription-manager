@@ -174,23 +174,3 @@ All configuration lives in your `.env` file. See `.env.example` for the full tem
 | Groq | 14,400 requests/day |
 | Gemini | 1,500 requests/day |
 | Cloudflare AI | 10,000 requests/day |
-| **Combined AI** | **~26,000 categorizations/day free** |
-
----
-
-## Deployment
-
-To deploy to production:
-
-1. **Database** → [Supabase](https://supabase.com) free tier (PostgreSQL, 500MB)
-2. **Backend** → [Railway](https://railway.app) or [Render](https://render.com)
-3. **Frontend** → [Vercel](https://vercel.com)
-4. Update OAuth redirect URIs in Google/Microsoft console to your live domain
-5. Update `APP_FRONTEND_URL` in your production environment variables
-6. Change `spring.jpa.hibernate.ddl-auto=validate` for production safety
-
----
-
-## License
-
-MIT
