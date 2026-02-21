@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+
+  # ── PostgreSQL Database ─────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: emailsub_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: emailsubdb
+      POSTGRES_USER: emailsubuser
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emailsubuser -d emailsubdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Spring Boot Backend ─────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: emailsub_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/emailsubdb
+      SPRING_DATASOURCE_USERNAME: emailsubuser
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      APP_JWT_SECRET: ${JWT_SECRET}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET}
+      APP_AI_GROQ_API_KEY: ${GROQ_API_KEY}
+      APP_AI_GEMINI_API_KEY: ${GEMINI_API_KEY}
+      APP_AI_CLOUDFLARE_API_KEY: ${CLOUDFLARE_API_KEY}
+      APP_AI_CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
+      APP_FRONTEND_URL: http://localhost:3000
+
+  # ── React Frontend (served via Nginx) ───────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: emailsub_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:

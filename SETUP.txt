@@ -1,0 +1,346 @@
+================================================================
+  MAILCLEANER — COMPLETE SETUP GUIDE
+  From scratch to running app
+================================================================
+
+Everything runs through Docker. You do NOT need to install
+Java, Maven, Node.js, or PostgreSQL on your machine.
+Docker handles all of that inside containers automatically.
+
+You only need:
+  1. Docker Desktop installed
+  2. Your API keys filled into the .env file
+  3. One command to start everything
+
+----------------------------------------------------------------
+STEP 1 — INSTALL DOCKER DESKTOP
+----------------------------------------------------------------
+
+WINDOWS:
+  1. Go to https://www.docker.com/products/docker-desktop
+  2. Click "Download for Windows"
+  3. Run the installer (.exe)
+  4. During install — keep "Use WSL 2" checked (recommended)
+     If asked to install WSL 2 update, do it
+  5. Restart your computer when prompted
+  6. After restart, Docker Desktop opens automatically
+  7. Complete the quick setup wizard (skip sign in, it's optional)
+  8. Verify — open Command Prompt and run:
+       docker --version
+       docker compose version
+     Both should show a version number
+
+MAC:
+  1. Go to https://www.docker.com/products/docker-desktop
+  2. Click "Download for Mac"
+     - If you have an M1/M2/M3 chip → choose "Mac with Apple chip"
+     - If you have an older Intel Mac → choose "Mac with Intel chip"
+       (Not sure? Click Apple menu → About This Mac → look for "Chip" or "Processor")
+  3. Open the downloaded .dmg file
+  4. Drag Docker to your Applications folder
+  5. Open Docker from Applications
+  6. macOS will ask for your password to allow Docker to run — allow it
+  7. Docker icon appears in your menu bar (top right) — wait for it to stop animating
+  8. Verify — open Terminal and run:
+       docker --version
+       docker compose version
+     Both should show a version number
+
+
+----------------------------------------------------------------
+STEP 2 — GET YOUR API KEYS (All Free)
+----------------------------------------------------------------
+
+You need 5 sets of keys. Take your time with each one.
+Keep a notepad open to paste them as you go.
+
+
+  A) GOOGLE OAUTH + GMAIL API
+  ────────────────────────────
+  1. Go to https://console.cloud.google.com
+  2. Sign in with your Google account
+  3. Click "Select a project" (top bar) → "New Project"
+     - Project name: MailCleaner → Create
+  4. Make sure your new project is selected in the top bar
+  5. Go to left menu → APIs & Services → Library
+     - Search "Gmail API" → Click it → Click "Enable"
+  6. Go to APIs & Services → OAuth consent screen
+     - User Type: External → Create
+     - App name: MailCleaner
+     - User support email: your email
+     - Developer contact: your email
+     - Click Save and Continue
+  7. On Scopes screen → Click "Add or Remove Scopes"
+     - Check these 5 scopes:
+         .../auth/userinfo.email
+         .../auth/userinfo.profile
+         openid
+         .../auth/gmail.readonly
+         .../auth/gmail.send
+     - Update → Save and Continue
+  8. On Test Users screen → Add Users → add your own email → Save
+  9. Go to APIs & Services → Credentials
+     - Click "Create Credentials" → "OAuth Client ID"
+     - Application type: Web application
+     - Name: MailCleaner
+     - Authorized redirect URIs → Add URI:
+         http://localhost:3000/auth/callback/google
+     - Click Create
+     - A popup shows your keys — COPY BOTH:
+         Client ID     → GOOGLE_CLIENT_ID
+         Client Secret → GOOGLE_CLIENT_SECRET
+
+
+  B) MICROSOFT OAUTH + OUTLOOK API
+  ──────────────────────────────────
+  1. Go to https://portal.azure.com
+  2. Sign in with any Microsoft account (Outlook, Hotmail, Live)
+  3. In the search bar at top → search "App registrations" → click it
+  4. Click "New registration"
+     - Name: MailCleaner
+     - Supported account types:
+       Select "Accounts in any organizational directory
+               and personal Microsoft accounts"
+     - Redirect URI: select "Web" from dropdown
+       URI value: http://localhost:3000/auth/callback/microsoft
+     - Click Register
+  5. You're now on your app's Overview page
+     - COPY: Application (client) ID → MICROSOFT_CLIENT_ID
+  6. Left menu → Certificates & secrets → New client secret
+     - Description: mailcleaner-secret
+     - Expires: 24 months → Add
+     - COPY the Value immediately (only shown once!)
+       → MICROSOFT_CLIENT_SECRET
+  7. Left menu → API permissions → Add a permission
+     → Microsoft Graph → Delegated permissions
+     Search and add each one:
+       Mail.Read
+       Mail.Send
+       offline_access
+     (openid, email, profile are already there by default)
+     → Click "Add permissions"
+
+
+  C) GROQ API — Primary AI (Free, no credit card)
+  ─────────────────────────────────────────────────
+  1. Go to https://console.groq.com
+  2. Sign up with email or Google
+  3. Left menu → API Keys → Create API Key
+  4. Name: anything → Submit
+  5. COPY the key → GROQ_API_KEY
+     (shown only once — save it now)
+
+
+  D) GEMINI API — AI Fallback (Free)
+  ────────────────────────────────────
+  1. Go to https://aistudio.google.com/app/apikey
+  2. Sign in with Google
+  3. Click "Create API key"
+  4. Select your MailCleaner project → Create
+  5. COPY the key → GEMINI_API_KEY
+
+
+  E) CLOUDFLARE AI — AI Fallback (Free)
+  ───────────────────────────────────────
+  1. Go to https://dash.cloudflare.com
+  2. Sign up free (no credit card needed)
+  3. After login, look at the RIGHT sidebar
+     Find "Account ID" → COPY it → CLOUDFLARE_ACCOUNT_ID
+  4. Click your profile icon (top right) → My Profile
+  5. Left menu → API Tokens → Create Token
+  6. Find "Workers AI" template → Use template
+  7. Leave defaults → Continue to summary → Create Token
+  8. COPY the token → CLOUDFLARE_API_KEY
+     (shown only once — save it now)
+
+
+----------------------------------------------------------------
+STEP 3 — SET UP YOUR .ENV FILE
+----------------------------------------------------------------
+
+  1. Go to the project folder:
+       email-subscription-manager/
+
+  2. Find the file named:
+       .env.example
+
+  3. COPY that file and rename the copy to:
+       .env
+     (just ".env" — no other name, no extension after it)
+
+     WINDOWS: Right-click .env.example → Copy → Paste →
+              Right-click the copy → Rename → type: .env
+              Windows may warn about removing extension — click Yes
+
+     MAC: In Terminal:
+              cd path/to/email-subscription-manager
+              cp .env.example .env
+
+  4. Open .env in any text editor (Notepad, VS Code, TextEdit)
+
+  5. Fill in every value with the keys you collected in Step 2:
+
+       DB_PASSWORD=make_up_any_password_you_want
+       JWT_SECRET=make_up_any_long_random_string_min_32_chars
+
+       GOOGLE_CLIENT_ID=paste_your_google_client_id
+       GOOGLE_CLIENT_SECRET=paste_your_google_client_secret
+
+       MICROSOFT_CLIENT_ID=paste_your_microsoft_client_id
+       MICROSOFT_CLIENT_SECRET=paste_your_microsoft_client_secret
+
+       GROQ_API_KEY=paste_your_groq_api_key
+       GEMINI_API_KEY=paste_your_gemini_api_key
+       CLOUDFLARE_API_KEY=paste_your_cloudflare_api_key
+       CLOUDFLARE_ACCOUNT_ID=paste_your_cloudflare_account_id
+
+  6. Save the file
+
+
+----------------------------------------------------------------
+STEP 4 — START THE APP
+----------------------------------------------------------------
+
+  WINDOWS — Command Prompt:
+    1. Open Command Prompt (Win + R → type cmd → Enter)
+    2. Navigate to the project folder:
+         cd path\to\email-subscription-manager
+    3. Run:
+         docker compose up --build
+
+  MAC — Terminal:
+    1. Open Terminal (Cmd + Space → type Terminal → Enter)
+    2. Navigate to the project folder:
+         cd path/to/email-subscription-manager
+    3. Run:
+         docker compose up --build
+
+  What happens next:
+    - Docker downloads the base images (first time only, ~2 min)
+    - Docker builds the backend (Maven compiles Java, ~3 min)
+    - Docker builds the frontend (npm builds React, ~1 min)
+    - PostgreSQL starts up
+    - Backend connects to database and creates all tables
+    - Frontend is served via Nginx
+
+  You'll know it's ready when you see:
+    emailsub_backend  | Started EmailSubscriptionManagerApplication
+    emailsub_frontend | nginx: worker process started
+
+  Total first-time startup: about 5-7 minutes
+  After that (no --build needed): about 30 seconds
+
+
+----------------------------------------------------------------
+STEP 5 — OPEN THE APP
+----------------------------------------------------------------
+
+  Open your browser and go to:
+
+    http://localhost:3000
+
+  That's it. The app is running.
+
+
+----------------------------------------------------------------
+STEP 6 — FIRST USE
+----------------------------------------------------------------
+
+  1. Click "Connect Gmail" or "Connect Outlook"
+  2. Log in with your Google or Microsoft account
+  3. Grant the requested permissions
+  4. You'll land on the Dashboard
+  5. Click "Start Scanning" — takes about 30 seconds
+  6. Your subscriptions appear organized by category
+     (Jobs, Finance, Shopping, Learning, News, etc.)
+  7. Click "Unsubscribe" on anything you want to remove
+
+
+----------------------------------------------------------------
+STOPPING THE APP
+----------------------------------------------------------------
+
+  Press Ctrl + C in the terminal window where it's running.
+
+  To start again later (faster, no rebuild needed):
+    docker compose up
+
+  To stop AND remove containers (data is kept in volume):
+    docker compose down
+
+  To stop AND delete ALL data including the database:
+    docker compose down -v
+    (use this only if you want a completely fresh start)
+
+
+----------------------------------------------------------------
+TROUBLESHOOTING
+----------------------------------------------------------------
+
+  "port 3000 already in use"
+  ──────────────────────────
+  Something else on your machine is using port 3000.
+  Open docker-compose.yml and change:
+    ports:
+      - "3000:80"
+  to:
+    ports:
+      - "3001:80"
+  Then open http://localhost:3001 instead.
+
+
+  "Backend keeps restarting"
+  ───────────────────────────
+  Usually means a missing or wrong API key in .env
+  Check your .env file — make sure no value is left as
+  "your_xxx_here" placeholder text.
+  Run: docker compose logs backend
+  to see the exact error message.
+
+
+  "redirect_uri_mismatch" during Google/Microsoft login
+  ───────────────────────────────────────────────────────
+  The redirect URI must exactly match what you set in Step 2.
+  Google:    http://localhost:3000/auth/callback/google
+  Microsoft: http://localhost:3000/auth/callback/microsoft
+  No trailing slash. No https. Exact match required.
+  If you changed the port to 3001, update these URIs too.
+
+
+  "Gmail scan returns 0 results"
+  ───────────────────────────────
+  Make sure Gmail API is enabled in Google Cloud Console
+  (Step 2A, point 5). OAuth alone is not enough —
+  the Gmail API must be separately enabled.
+
+
+  First time build is very slow
+  ──────────────────────────────
+  Normal — Maven downloads ~100MB of Java dependencies
+  and npm downloads ~50MB of Node packages.
+  This only happens once. Subsequent starts are fast.
+
+
+  Docker Desktop not starting on Windows
+  ───────────────────────────────────────
+  Make sure WSL 2 is properly installed:
+  Open PowerShell as Administrator and run:
+    wsl --update
+  Then restart Docker Desktop.
+
+
+----------------------------------------------------------------
+UPDATING THE APP AFTER CODE CHANGES
+----------------------------------------------------------------
+
+  If you make changes to any code file, rebuild with:
+    docker compose up --build
+
+  If you only change .env values:
+    docker compose down
+    docker compose up
+
+
+================================================================
+  THAT'S EVERYTHING — ENJOY MAILCLEANER!
+================================================================
